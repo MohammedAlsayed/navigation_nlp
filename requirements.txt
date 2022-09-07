@@ -1,0 +1,8 @@
+matplotlib
+torch
+sklearn
+numpy
+tqdm
+pandas
+nltk
+contractions
