@@ -11,7 +11,7 @@ The first pipeline in any Machine Learning task is to explore and process the da
 
 - Removing stop words didn't change the models performance.
 
-- The target object records were not consistent, that's why the model had difficulty to learn the pattern in the data. You can see in some of the examples in the table below how the targets (desklamp) and (floorlamp) share the same sentence as in the first two table records. Same thing for the last two; they are almost the sentence with different target objects. This made target difficult to learn:
+- The target object records were not consistent, that's why the model was struggling to learn the pattern in the data. As you can see in some of the examples in the table below the targets (desklamp) and (floorlamp) share the same sentence as in the first two records. Same thing for the last two; they are almost the same sentence, but with different target objects. This made the confusion and made the target difficult to learn:
     
     | Sentence      | target |
     | ----------- | ----------- |
@@ -20,7 +20,7 @@ The first pipeline in any Machine Learning task is to explore and process the da
     | Pick up the knife from the counter	   | butterknife        |
     | Pick up the knife on the counter	      | knife       |
 
-- Removing duplicate records made the model accuracy lower than keeping them. Because the training and validation sets are almost the same kind of instructions, so when keeping the duplicate records the model tend to learn more about these records which are going to be also popular in the validation set. It's a trad-off that needs to be tested on production systems. Since the tasks are similar, most probably the instructions given will be similar also, that's why we have duplicate records.
+- Removing duplicate records made the model accuracy lower than keeping them. Because the training and validation sets are almost the same kind of instructions, so when keeping the duplicate records the model tend to learn more about these records which are going to be also popular in the validation set. It's a trad-off that needs to be tested on production systems. Since the tasks performed by navigators are similar, most probably the instructions given will be similar too, that's why we have duplicate records.
 
 The first two records in the tables below are an example of duplicates:
 
