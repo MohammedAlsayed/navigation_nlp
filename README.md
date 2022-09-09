@@ -23,9 +23,11 @@ The first pipeline in any Machine Learning task is to explore and process the da
 - Removing duplicate records made the model accuracy lower than keeping them. Because the training and validation sets are almost the same kind of instructions, so when keeping the duplicate records the model tend to learn more about these records which are going to be also popular in the validation set. It's a trad-off that needs to be tested on production systems. Since the tasks are similar, most probably the instructions given will be similar also, that's why we have duplicate records.
 
 The first two records in the tables below are an example of duplicates:
+
 <img src="./figures/training_duplicates.png" width="550" height="400">
 
 An example of validation duplicates:
+
 <img src="./figures/validation_duplicates.png" width="550" height="400">
 
 The first two records are the exact same sentences with the same action and target.
