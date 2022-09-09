@@ -15,8 +15,9 @@ from utils import (
     preprocess_string,
     build_tokenizer_table,
     build_output_tables,
-    encode_data
-    load_glove_model
+    encode_data,
+    load_glove_model,
+    stem_review
 )
 
 def process_data_to_csv(filePath, args):
@@ -49,7 +50,7 @@ def process_data_to_csv(filePath, args):
     print("finished JSON data to CSV successfully")
 
 
-def setup_dataloader(args):
+def setup_dataloader(args, params):
     """
     return:
         - train_loader: torch.utils.data.Dataloader
@@ -63,9 +64,32 @@ def setup_dataloader(args):
         print("removing duplicate records in data")
         data = data.groupby(['sentence', 'action', 'target'], as_index=False).count()[['sentence', 'action', 'target']]
     
+
     train = data
 
     v2i, i2v, seq_len = build_tokenizer_table(train['sentence'], args)
+    params['glove'] = False
+    if args.glove:
+        not_found = 0
+        glove_model = load_glove_model("glove.6B/glove.6B.300d.txt")
+        embedding_matrix = np.zeros((len(v2i), args.embedding_dim))
+        np.random.seed(10)
+        for word in v2i.keys():
+            index = v2i[word]
+            if word in glove_model:
+                vector = glove_model[word]
+            elif word.lower() in glove_model:
+                vector = glove_model[word.lower()]
+            elif stem_review(word)[0] in glove_model:
+                vector = glove_model[stem_review(word)[0]]
+            else:
+                not_found += 1
+                vector = np.random.rand(args.embedding_dim)
+            embedding_matrix[index] = vector
+        params['pre_embeddings'] = embedding_matrix
+        params['glove'] = True
+        print(f"total words found in Glove ={len(v2i)-not_found} out of {len(v2i)}!")
+
     actions_to_index, index_to_actions, targets_to_index, index_to_targets = build_output_tables(train[['action', 'target']])
     
     valid = pd.read_csv("validation.csv", delimiter="|")
@@ -290,24 +314,26 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
 
 def main(args):
 
+    
     process_data_to_csv(args.in_data_fn, args)
-
     device = get_device(args.force_cpu)
     
+    params = {}
     # get dataloaders
-    train_loader, val_loader, vocab_size, action_outputs, target_outputs, seq_len = setup_dataloader(args)
+    train_loader, val_loader, vocab_size, action_outputs, target_outputs, seq_len = setup_dataloader(args, params)
+    params["seq_len"]=seq_len
+    params["vocab_size"] = vocab_size
+    params["embedding_dim"] = args.embedding_dim
+    params["lstm_hidden_dim"] = args.lstm_hidden_dim
+    params["lstm_layers"] = args.lstm_layers
+    params["dropout"] = args.dropout
+    params["batch_size"] = args.batch_size
+    params["action_outputs"] = action_outputs
+    params["target_outputs"] = target_outputs
+    params["linear_output_dim"] = args.linear_output_dim
+
 
     loaders = {"train": train_loader, "val": val_loader}
-
-    params = {"seq_len":seq_len,
-    "vocab_size":vocab_size, 
-    "embedding_dim":args.embedding_dim, 
-    "lstm_hidden_dim":args.lstm_hidden_dim, 
-    "lstm_layers":args.lstm_layers, 
-    "dropout":args.dropout, 
-    "batch_size":args.batch_size,
-    "action_outputs":action_outputs,
-    "target_outputs":target_outputs}
 
     # build model
     model = setup_model(params)
@@ -330,6 +356,7 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", default=0.33, help="dropout rate of the neural net", type=float)
     parser.add_argument("--lstm_hidden_dim", default=256, help="LSTM hidden dimension size", type=int)
     parser.add_argument("--lstm_layers", default=1, help="number of LSTM layers", type=int)
+    parser.add_argument("--linear_output_dim", default=100, help="linear output leayer from lstm to output", type=int)
     parser.add_argument("--weight_decay", default=0, help="L2 regularization", type=float)
 
     parser.add_argument("--force_cpu", default=False, action="store_true", help="debug mode")
@@ -338,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument("--lemmatize_words", default=False, action="store_true", help="lemmatize words")
     parser.add_argument("--stem_words", default=False, action="store_true", help="stem words")
     parser.add_argument("--all_lower", default=False, action="store_true", help="make all words to lower case")
+    parser.add_argument("--glove", default=False, action="store_true", help="Using glove 300 vector for word embeddings")
 
     args = parser.parse_args()
     print(args)

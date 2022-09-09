@@ -157,7 +157,7 @@ def build_output_tables(train):
 
 
 def load_glove_model(glove_path):
-    print("Loading Glove Model")
+    print("Loading Glove 300 Model")
     glove_model = {}
     with open(glove_path,'rb') as f:
         for line in f:
