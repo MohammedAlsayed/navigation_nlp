@@ -74,6 +74,19 @@ Loss and Accuracy Plots for Action
 
 # Run the code
 
+## Install packages
+        # first create a virtualenv 
+        virtualenv -p $(which python3) ./hw1
+
+        # activate virtualenv
+        source ./hw1/bin/activate
+
+        # install packages
+        pip3 install -r requirements.txt
+
+## Train model
+Here are some commands to run the model. You can **stem**, **lemmatize**, add **GloVe** as word embeddings, remove duplicate records by adding the following: --stem_words, --lemmatize_words, --glove, --remove_dup. There are more flags that can be shown with --help. 
+
 - Removing Duplicates, Lemmatizing Words, All Words to Lower Case
 
         python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3 --learning_rate=0.005 --embedding_dim=100 --dropout=0.33 --lstm_hidden_dim=256 --lstm_layers=2 --linear_output_dim=64 --weight_decay=0.0001 --force_cpu --remove_dup --lemmatize_words --all_lower
