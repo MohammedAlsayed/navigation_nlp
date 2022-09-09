@@ -8,13 +8,9 @@ nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 nltk.download('stopwords')
 from nltk.corpus import stopwords
+from nltk.stem.porter import *
 
 def get_device(force_cpu, status=True):
-    # if not force_cpu and torch.backends.mps.is_available():
-    # 	device = torch.device('mps')
-    # 	if status:
-    # 		print("Using MPS")
-    # elif not force_cpu and torch.cuda.is_available():
     if not force_cpu and torch.cuda.is_available():
         device = torch.device("cuda")
         if status:
@@ -86,6 +82,17 @@ def leammatize_review(txt):
   clean_string = ' '.join(clean_list)
   return clean_string
 
+def stem_review(txt):
+    stemmer = PorterStemmer()
+    word_list = txt.split()
+    clean_list = []
+    clean_string = ''
+    for word in word_list:
+        new_word = stemmer.stem(word)
+        clean_list.append(new_word)
+    clean_string = ' '.join(clean_list)
+    return clean_string
+
 def preprocess_string(s):
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", "", s)
@@ -99,8 +106,11 @@ def preprocess_string(s):
     s = s.lower()
     # lemmatize the string (keeps the context of the word)
     s = leammatize_review(s)
+    # Stemmer
+    # s = stem_review(s)
     # remove stop words
-    # s = remove_stop_words(s)
+    s = remove_stop_words(s)
+
     return s
 
 
