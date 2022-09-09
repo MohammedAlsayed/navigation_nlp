@@ -78,10 +78,12 @@ Loss and Accuracy Plots for Action
 
         python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3 --learning_rate=0.005 --embedding_dim=100 --dropout=0.33 --lstm_hidden_dim=256 --lstm_layers=2 --linear_output_dim=64 --weight_decay=0.0001 --force_cpu --remove_dup --lemmatize_words --all_lower
 
-- Lemmatizing Words, All Words to Lower Case
+- Lemmatizing Words, All Words to Lower Case. For stemming replace --lemmatize_words with --stem_words
 
         python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3  --learning_rate=0.005 --embedding_dim=100 --dropout=0.33 --lstm_hidden_dim=256 --lstm_layers=2 --linear_output_dim=64 --weight_decay=0.0001 --force_cpu --lemmatize_words --all_lower
 
 - Lemmatizing Words, All Words to Lower Case, Glove embeddings; note the embedding_dim should be 300 and you need to download the glove embeddings in the same directory for the code to run
 
         python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3 --learning_rate=0.005 --embedding_dim=300 --dropout=0.33 --lstm_hidden_dim=128 --lstm_layers=2 --linear_output_dim=64 --weight_decay=0.0001 --force_cpu --remove_dup --glove
+        
+        
