@@ -56,7 +56,15 @@ The archeticture of the model is:
     
 ## Results Discussion
 
-- Training the model seperately on Target and on Action got an accuracy of 75% and 98% conecutively on the validation set. However, when training the model with multiple heads and optimizing for both losses the model decays in performance, resulting in 70% for action and 27% for target at it's best performance.
+- Training the model seperately on Target and on Action got an accuracy of 70% and 98% conecutively on the validation set. However, when training the model with multiple heads and optimizing for both losses the model decays in performance, resulting in 70% for action and 27% for target at it's best performance as shown in third bullet point.
+
+Loss and Accuracy Plots for Target
+
+<img src="./plots/target_accuracy2.png" width="650" height="250">
+
+Loss and Accuracy Plots for Action
+
+<img src="./plots/action_accuracy2.png" width="650" height="250">
 
 - I noticed the training data has plenty of duplicate records. When keeping the duplicates the model performs way better then removing them specially for the target. The reason is that the training and validation sets both have similar sentences. Since, sentences are given as a navigation guide for people to achieve a specific goal the set of instructions is always similar. So, the model tends to overfit on the training data, and because the validation data has the same distribution the model performs pretty good. But if there was a distribution shift I guess that the model's performance will degrade.
 
