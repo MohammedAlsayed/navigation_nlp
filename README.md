@@ -29,9 +29,9 @@ Below is an example of training duplicates:
 Below is an example of validation duplicates:
 <img src="./figures/validation_duplicates.png" width="550" height="400">
 
-The first two records are the exact same sentences with the same action and target. You can notice more matches when exploring the two tables.
+The first two records are the exact same sentences with the same action and target.
 
-## Net Design
+## Neural Network Design
 
 The archeticture of the model is:
 
@@ -42,33 +42,29 @@ The archeticture of the model is:
     (linear): Linear(in_features=256, out_features=8, bias=True)
     )
  
-- Vocab size 1000 was suitable enough to cover important vocab in the dataset, since the vocab used as instructions is very similar so 1000 was good enough to cover the important words.
+- Vocab size 1000 was suitable enough to cover important vocab in the dataset, since the vocab used in giving instructions is very similar to each other, so 1000 was good enough to cover the important words.
 - Embedding dimension: wasn't a big factor in changin the model's performance, so I just chose a common number.
-- Prediction Head: I added two linear layers at end one for target and another for action. 
+- Prediction Head: I added two linear layers at the end, one for the target 80 classes and another for the action 8 classes. Having one model for each task performed much better than one model for two prediction tasks.
 - Optimiztion: the SGD was struggling to minimize the loss of the target prediction, while Adam sky rocketed the performance.
 - Hyperparamters: 
     - Dropout: since we have a lot of duplicates and short sentences the model tends to overfit so I added to a dropout rate to mitigate this issue. 
     - Embedding Dim and LSTM hidden Dim didn't have a huge effect so  I just chose a common number.
     - Learning rate as well, just chose a common number.
-    - weight decay was helpful to regularize the model when training on the traget. 
+    - weight decay was helpful to regularize the model when training on the traget. The model was overfitting with time, the training accuracy goes higher but the validation accuracy goes lower, regularization mitigated this effect. 
     
 ## Results
 
-- Training the model seperately on Target and on Action performs better with an accuracy of 75% and 98% on the objectives consectively
+- Training the model seperately on Target and on Action performs way better with an accuracy of 75% and 98% conecutively. However, when training the model with multiple heads and optimizing for both losses the model decays in performance, resulting in 70% for action and 27% for target.
 
 # Run the code
 
-python3 train.py \
-    --in_data_fn=lang_to_sem_data.json \
-    --model_output_dir=experiments/lstm \
-    --batch_size=100 \
-    --num_epochs=10 \
-    --val_every=3 \
-    --learning_rate=0.005 \
-    --embedding_dim=64 \
-    --dropout=0.33\
-    --lstm_hidden_dim=128\
-    --weight_decay=0.0001\
-    --force_cpu
+- Removing Duplicates, Lemmatizing Words, All Words to Lower Case
 
+        python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3 --learning_rate=0.005 --embedding_dim=100 --dropout=0.33 --lstm_hidden_dim=256 --lstm_layers=2 --weight_decay=0.0001 --force_cpu --remove_dup --lemmatize_words --all_lower
+
+- Lemmatizing Words, All Words to Lower Case
+
+        python3 train.py --in_data_fn=lang_to_sem_data.json --batch_size=100 --num_epochs=10 --val_every=3  --learning_rate=0.005 --embedding_dim=100 --dropout=0.33 --lstm_hidden_dim=256 --lstm_layers=2 --weight_decay=0.0001 --force_cpu --lemmatize_words --all_lower
+
+-- Lemmatizing Words, All Words to Lower Case, Word2Vec embeddings
 

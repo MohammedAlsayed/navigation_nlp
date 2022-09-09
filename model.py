@@ -15,7 +15,7 @@ class NavigationLSTM(nn.Module):
         self.embedding = nn.Embedding(params['vocab_size'], params['embedding_dim'], padding_idx=0)
         self.lstm = nn.LSTM(params['seq_len']*params['embedding_dim'],
                             params['lstm_hidden_dim'],
-                            num_layers = 2,
+                            num_layers = params['lstm_layers'],
                             dropout=params['dropout'],
                             batch_first=True)
 

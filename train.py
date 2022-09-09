@@ -11,39 +11,42 @@ import matplotlib.pyplot as plt
 
 from utils import (
     get_device,
+    load_glove_model,
     preprocess_string,
     build_tokenizer_table,
     build_output_tables,
     encode_data
+    load_glove_model
 )
 
-def process_data_to_csv(filePath):
+def process_data_to_csv(filePath, args):
+    print("process JSON data to CSV")
     file = open(filePath)
-    train_output = open("train_raw.csv", 'w')
-    
+    train_output = open("train.csv", 'w')
     train_output.write("sentence|action|target")
     
     data_json = json.load(file)
     train = data_json["train"]
     for t in train:
         for i in t:
-            sentence = preprocess_string(i[0])
-            action = preprocess_string(i[1][0])
-            target = preprocess_string(i[1][1])
+            sentence = preprocess_string(i[0], args)
+            action = preprocess_string(i[1][0], args)
+            target = preprocess_string(i[1][1], args)
             train_output.write("\n"+sentence+"|"+action+"|"+target)
     train_output.close()
     
-    valid_output = open("validation_raw.csv", 'w')
+    valid_output = open("validation.csv", 'w')
     valid_output.write("sentence|action|target")
 
     valid = data_json["valid_seen"]
     for v in valid:
         for i in v:
-            sentence = preprocess_string(i[0])
-            action = preprocess_string(i[1][0])
-            target = preprocess_string(i[1][1])
+            sentence = preprocess_string(i[0], args)
+            action = preprocess_string(i[1][0], args)
+            target = preprocess_string(i[1][1], args)
             valid_output.write("\n"+sentence+"|"+action+"|"+target)
     valid_output.close()
+    print("finished JSON data to CSV successfully")
 
 
 def setup_dataloader(args):
@@ -53,26 +56,25 @@ def setup_dataloader(args):
         - val_loader: torch.utils.data.Dataloader
     """
     
-    data = pd.read_csv("train_raw.csv", delimiter="|")
+    data = pd.read_csv("train.csv", delimiter="|")
     
     # remove duplicates
     if args.remove_dup:
-        print("removing duplicates in data")
+        print("removing duplicate records in data")
         data = data.groupby(['sentence', 'action', 'target'], as_index=False).count()[['sentence', 'action', 'target']]
     
-
     train = data
 
-    v2i, i2v, seq_len = build_tokenizer_table(train['sentence'])
+    v2i, i2v, seq_len = build_tokenizer_table(train['sentence'], args)
     actions_to_index, index_to_actions, targets_to_index, index_to_targets = build_output_tables(train[['action', 'target']])
     
-    valid = pd.read_csv("validation_raw.csv", delimiter="|")
+    valid = pd.read_csv("validation.csv", delimiter="|")
 
-    x_train, y_action_train = encode_data(train[['sentence','action']], v2i, seq_len, actions_to_index)
-    x_valid, y_action_valid = encode_data(valid[['sentence','action']], v2i, seq_len, actions_to_index)
+    x_train, y_action_train = encode_data(train[['sentence','action']], v2i, seq_len, actions_to_index, args)
+    x_valid, y_action_valid = encode_data(valid[['sentence','action']], v2i, seq_len, actions_to_index, args)
 
-    _, y_target_train = encode_data(train[['sentence','target']], v2i, seq_len, targets_to_index)
-    _, y_target_valid = encode_data(valid[['sentence','target']], v2i, seq_len, targets_to_index)
+    _, y_target_train = encode_data(train[['sentence','target']], v2i, seq_len, targets_to_index, args)
+    _, y_target_valid = encode_data(valid[['sentence','target']], v2i, seq_len, targets_to_index, args)
 
     lables_train = np.array((y_action_train, y_target_train)).T
     lables_valid = np.array((y_action_valid, y_target_valid)).T
@@ -241,7 +243,7 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
                 f"val action loss : {val_action_loss} | val target loss: {val_target_loss}"
             )
             print(
-                f"val action acc : {val_action_acc} | val target loss: {val_target_acc}"
+                f"val action acc : {val_action_acc} | val target acc: {val_target_acc}"
             )
             val_target_loss_list.append(val_target_loss)
             val_action_loss_list.append(val_action_loss)
@@ -249,8 +251,8 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
             val_target_accuracy_list.append(val_target_acc)
             val_action_accuracy_list.append(val_action_acc)
 
-    train_epochs = range(0,args.num_epochs)
-    val_epochs  = range(0,args.num_epochs,args.val_every)
+    train_epochs = range(1,args.num_epochs+1)
+    val_epochs  = range(1,args.num_epochs+1,args.val_every)
 
     # Target and Action loss
     fig, ax = plt.subplots(1, 2, figsize=(10, 4))
@@ -288,9 +290,9 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
 
 def main(args):
 
-    # process_data_to_csv("./lang_to_sem_data.json")
+    process_data_to_csv(args.in_data_fn, args)
 
-    device = torch.device("cpu")
+    device = get_device(args.force_cpu)
     
     # get dataloaders
     train_loader, val_loader, vocab_size, action_outputs, target_outputs, seq_len = setup_dataloader(args)
@@ -301,6 +303,7 @@ def main(args):
     "vocab_size":vocab_size, 
     "embedding_dim":args.embedding_dim, 
     "lstm_hidden_dim":args.lstm_hidden_dim, 
+    "lstm_layers":args.lstm_layers, 
     "dropout":args.dropout, 
     "batch_size":args.batch_size,
     "action_outputs":action_outputs,
@@ -312,37 +315,31 @@ def main(args):
 
     # get optimizer and loss functions
     action_criterion, target_criterion, optimizer = setup_optimizer(args, model)
-
-    if args.eval:
-        val_action_loss, val_target_loss, val_action_acc, val_target_acc = validate(
-            args,
-            model,
-            loaders["val"],
-            optimizer,
-            action_criterion,
-            target_criterion,
-            device,
-        )
-    else:
-        train(args, model, loaders, optimizer, action_criterion, target_criterion, device)
+    train(args, model, loaders, optimizer, action_criterion, target_criterion, device)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_data_fn", type=str, help="data file")
     parser.add_argument("--batch_size", type=int, default=32, help="size of each batch in loader")
-    parser.add_argument("--eval", action="store_true", help="run eval")
-    parser.add_argument("--num_epochs", default=1000, help="number of training epochs", type=int)
+    parser.add_argument("--num_epochs", default=10, help="number of training epochs", type=int)
     parser.add_argument("--val_every", default=5, help="number of epochs between every eval loop", type=int)
 
     parser.add_argument("--learning_rate", default=0.001, help="learning rate", type=float)
     parser.add_argument("--embedding_dim", default=100, help="number of embedding dimensions", type=int)
     parser.add_argument("--dropout", default=0.33, help="dropout rate of the neural net", type=float)
     parser.add_argument("--lstm_hidden_dim", default=256, help="LSTM hidden dimension size", type=int)
+    parser.add_argument("--lstm_layers", default=1, help="number of LSTM layers", type=int)
     parser.add_argument("--weight_decay", default=0, help="L2 regularization", type=float)
 
     parser.add_argument("--force_cpu", default=False, action="store_true", help="debug mode")
     parser.add_argument("--remove_dup", default=False, action="store_true", help="remove duplicate records from data")
-    args, unkown = parser.parse_known_args()
+    parser.add_argument("--remove_stop_words", default=False, action="store_true", help="remove non stop words from senteces")
+    parser.add_argument("--lemmatize_words", default=False, action="store_true", help="lemmatize words")
+    parser.add_argument("--stem_words", default=False, action="store_true", help="stem words")
+    parser.add_argument("--all_lower", default=False, action="store_true", help="make all words to lower case")
+
+    args = parser.parse_args()
+    print(args)
 
     main(args)

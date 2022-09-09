@@ -1,4 +1,3 @@
-from gettext import install
 import re
 import torch
 import numpy as np
@@ -33,7 +32,7 @@ def remove_stop_words(txt):
     clean_string = ' '.join(clean_list)
     return clean_string
 
-def encode_data(data, v2i, seq_len, label2i):
+def encode_data(data, v2i, seq_len, label2i, args):
     n_lines = len(data)
     n_labels = len(label2i)
 
@@ -45,7 +44,6 @@ def encode_data(data, v2i, seq_len, label2i):
     n_unks = 0
     n_tks = 0
     for sentence, label in data.itertuples(index=False):
-        sentence = preprocess_string(sentence)
         x[idx][0] = v2i["<start>"]
         jdx = 1
         for word in sentence.split():
@@ -93,7 +91,7 @@ def stem_review(txt):
     clean_string = ' '.join(clean_list)
     return clean_string
 
-def preprocess_string(s):
+def preprocess_string(s, args):
     # Remove all non-word characters (everything except numbers and letters)
     s = re.sub(r"[^\w\s]", "", s)
     # Replace all runs of whitespaces with one space
@@ -103,22 +101,24 @@ def preprocess_string(s):
     # remove extra spaces at the end and begining
     s = s.strip()
     # all lower case
-    s = s.lower()
+    if(args.all_lower):
+        s = s.lower()
     # lemmatize the string (keeps the context of the word)
-    s = leammatize_review(s)
+    if(args.lemmatize_words):
+        s = leammatize_review(s)
     # Stemmer
-    # s = stem_review(s)
+    if(args.stem_words):
+        s = stem_review(s)
     # remove stop words
-    s = remove_stop_words(s)
-
+    if(args.remove_stop_words):
+        s = remove_stop_words(s)
     return s
 
 
-def build_tokenizer_table(train, vocab_size=1000):
+def build_tokenizer_table(train, args, vocab_size=1000):
     word_list = []
     padded_lens = []
     for inst in train:
-        inst = preprocess_string(inst)
         padded_len = 2  # start/end
         for word in inst.lower().split():
             if len(word) > 0:
@@ -153,3 +153,17 @@ def build_output_tables(train):
     index_to_actions = {actions_to_index[a]: a for a in actions_to_index}
     index_to_targets = {targets_to_index[t]: t for t in targets_to_index}
     return actions_to_index, index_to_actions, targets_to_index, index_to_targets
+
+
+
+def load_glove_model(glove_path):
+    print("Loading Glove Model")
+    glove_model = {}
+    with open(glove_path,'rb') as f:
+        for line in f:
+            split_line = line.split()
+            word = split_line[0].decode()
+            embedding = np.array(split_line[1:], dtype=np.float64)
+            glove_model[word] = embedding
+    print(f"{len(glove_model)} words loaded!")
+    return glove_model

@@ -3,3 +3,6 @@ train_raw.csv
 validation_raw.csv
 hw1/
 .DS_Store
+glove.6B/
+train.csv
+validation.csv
